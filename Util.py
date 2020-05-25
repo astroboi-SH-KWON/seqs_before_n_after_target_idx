@@ -29,7 +29,6 @@ class Utils:
         result_dict = {}
         with open(path + self.ext_txt, "r") as f:
             head_list = f.readline().replace("\n", "").split("\t")
-            idx = 1
             while True:
                 tmp_line = f.readline().replace("\n", "")
                 if tmp_line == '':
@@ -38,12 +37,11 @@ class Utils:
 
                 gene_chng_list = val_list[1].replace("g.","").split(":")
                 if gene_chng_list[0] in result_dict:
-                    tmp_list = [int(re.search(r'\d+', gene_chng_list[1].split("_")[0]).group())]
-                    result_dict[gene_chng_list[0]].append(tmp_list + val_list)
+                    seq_key = [int(re.search(r'\d+', gene_chng_list[1].split("_")[0]).group())]
+                    result_dict[gene_chng_list[0]].append(seq_key + val_list)
                 else:
-                    tmp_list = [int(re.search(r'\d+', gene_chng_list[1].split("_")[0]).group())]
-                    result_dict.update({gene_chng_list[0]: [tmp_list + val_list]})
-                idx += 1
+                    seq_key = [int(re.search(r'\d+', gene_chng_list[1].split("_")[0]).group())]
+                    result_dict.update({gene_chng_list[0]: [seq_key + val_list]})
 
         return result_dict
 
@@ -86,3 +84,39 @@ class Utils:
 
                 idx = idx + 1
 
+    def make_excel(self, path, input_dict, out_dict):
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+
+        row = 1
+        sheet.cell(row=row, column=1, value="Cellline")
+        sheet.cell(row=row, column=2, value='Genome_Change')
+        sheet.cell(row=row, column=3, value='Genomesequence')
+        sheet.cell(row=row, column=4, value='forward')
+        sheet.cell(row=row, column=5, value='backward')
+        sheet.cell(row=row, column=6, value='Strand')
+
+        for chr_key, val_dict in input_dict.items():
+            for val_arr in val_dict.values():
+                for val_input in val_arr:
+                    Cellline = val_input[0]
+                    Genome_Change = val_input[1]
+                    tmp_key = Cellline + "^" + Genome_Change
+                    Genomesequence = val_input[3]
+                    if tmp_key in out_dict[chr_key]:
+                        val_out = out_dict[chr_key][tmp_key]
+                        row = row + 1
+                        sheet.cell(row=row, column=1, value=Cellline)
+                        sheet.cell(row=row, column=2, value=Genome_Change)
+                        sheet.cell(row=row, column=3, value=Genomesequence)
+                        sheet.cell(row=row, column=4, value=val_out[2])
+                        if len(val_out) > 3:
+                            sheet.cell(row=row, column=5, value=val_out[3])
+                        sheet.cell(row=row, column=6, value=val_out[0])
+                        sheet.cell(row=row, column=7, value=len(val_out[2]))
+                        if len(val_out) > 3:
+                            sheet.cell(row=row, column=8, value=len(val_out[3]))
+                    # else:
+                        # print(val_input)
+
+        workbook.save(filename=path + "_" + str(clock()) + self.ext_xlsx)
